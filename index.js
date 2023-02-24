@@ -1,9 +1,28 @@
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql");
+const bodyParser = require("body-parser");
+const multer = require("multer");
 
 const app = express();
 app.use(cors());
+app.use(
+  bodyParser.urlencoded({
+    extended: false,
+  })
+);
+app.use(bodyParser.json());
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+      cb(null, 'upload')
+  },
+  filename: function (req, file, cb) {
+      cb(null, file.fieldname + '-' + Date.now() + ".png")
+  }
+})
+
+const upload = multer({ storage: storage });
 
 var db = mysql.createConnection({
   host: "localhost",
@@ -26,30 +45,39 @@ app.get("/categories", function (req, res) {
   res.send(arr);
 });
 
-app.get("/product", function (req, res) {
+app.get("/products", function (req, res) {
   db.query("select * from product;", (err, result) => {
     if (err) res.send("not data");
     else res.send(result);
   });
 });
 
-// CREATE TABLE product (
-//   id int auto_increment,
-//   title varchar(255) not null,
-//   category varchar(255),
-//   image_url varchar(255),
-//   description varchar(255),
-//   price varchar(255),
-//   primary key (id)
-// );
+app.post("/signup", function (req, res) {
+  db.query(
+    `insert into users (name,email,password) values ('${req.body.name}','${req.body.email}','${req.body.password}')`,
+    function (err, result) {
+      if (err) {
+        console.log(err);
+        res.send({ msg: "Error!" });
+      } else {
+        res.send({ msg: "Add successfully!" });
+      }
+    }
+  );
+});
 
-app.get("/product-add", function (req, res) {
-  console.log("callll", res.data);
-  res.send("recived data")
-  // db.query("insert into product (title,category,image_url,description,price) values ('Mens Cotton Jacket','cloth','https://media.istockphoto.com/id/488160041/photo/mens-shirt.jpg?s=612x612&w=0&k=20&c=xVZjKAUJecIpYc_fKRz_EB8HuRmXCOOPOtZ-ST6eFvQ=','description','$55.99')", (err, result) => {
-  // if(err) console.log(err)
-  // else res.send("Insert Done")
-  // });
+app.post("/product-add", upload.single("image_url"), function (req, res) {
+  try {
+    let query = `insert into product (title,category,image_url,description,price) 
+    values ('${req.body.title}','${req.body.category}','${req.file.filename}','${req.body.description}','${req.body.price}')`;
+
+    db.query(query, (err, result) => {
+      if (err) console.log(err);
+      else res.send({ msg: "Add Successfully!", status: 200 });
+    });
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 app.get("/family", function (req, res) {

@@ -7,3 +7,11 @@ CREATE TABLE product (
     price varchar(255),
     primary key (id)
 );
+
+create table users (
+    id int auto_increment,
+    name varchar(100),
+    email varchar(100),
+    password varchar(100),
+    primary key (id)
+);
